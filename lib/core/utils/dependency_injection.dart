@@ -6,6 +6,7 @@ import '../../features/categories/data/models/category_model.dart';
 import '../../features/categories/data/repositories/category_repository_impl.dart';
 import '../../features/categories/domain/repositories/category_repository.dart';
 import '../../features/categories/domain/usecases/add_category.dart';
+import '../../features/categories/domain/usecases/delete_category.dart';
 import '../../features/categories/domain/usecases/get_all_categories.dart';
 import '../../features/transactions/data/datasources/transaction_local_datasource.dart';
 import '../../features/transactions/data/models/transaction_model.dart';
@@ -45,6 +46,7 @@ Future<void> init() async {
   // Use cases
   sl.registerLazySingleton(() => GetAllCategories(sl()));
   sl.registerLazySingleton(() => AddCategory(sl()));
+  sl.registerLazySingleton(() => DeleteCategory(sl()));
   sl.registerLazySingleton(() => GetAllTransactions(sl()));
   sl.registerLazySingleton(() => AddTransaction(sl()));
 }

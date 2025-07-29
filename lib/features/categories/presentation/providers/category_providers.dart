@@ -3,6 +3,7 @@ import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/dependency_injection.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/usecases/add_category.dart';
+import '../../domain/usecases/delete_category.dart';
 import '../../domain/usecases/get_all_categories.dart';
 
 final getAllCategoriesProvider = FutureProvider<List<Category>>((ref) async {
@@ -19,8 +20,9 @@ final addCategoryProvider = Provider<AddCategory>((ref) => sl<AddCategory>());
 class CategoryNotifier extends StateNotifier<AsyncValue<List<Category>>> {
   final GetAllCategories _getAllCategories;
   final AddCategory _addCategory;
+  final DeleteCategory _deleteCategory;
 
-  CategoryNotifier(this._getAllCategories, this._addCategory)
+  CategoryNotifier(this._getAllCategories, this._addCategory, this._deleteCategory)
       : super(const AsyncValue.loading()) {
     loadCategories();
   }
@@ -41,8 +43,16 @@ class CategoryNotifier extends StateNotifier<AsyncValue<List<Category>>> {
       (_) => loadCategories(),
     );
   }
+
+  Future<void> deleteCategory(String id) async {
+    final result = await _deleteCategory(id);
+    result.fold(
+      (failure) => state = AsyncValue.error(failure, StackTrace.current),
+      (_) => loadCategories(),
+    );
+  }
 }
 
 final categoryNotifierProvider = StateNotifierProvider<CategoryNotifier, AsyncValue<List<Category>>>((ref) {
-  return CategoryNotifier(sl<GetAllCategories>(), sl<AddCategory>());
+  return CategoryNotifier(sl<GetAllCategories>(), sl<AddCategory>(), sl<DeleteCategory>());
 });

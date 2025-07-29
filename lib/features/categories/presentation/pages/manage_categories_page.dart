@@ -4,19 +4,20 @@ import 'package:uuid/uuid.dart';
 import '../../domain/entities/category.dart';
 import '../providers/category_providers.dart';
 
+final selectedColorProvider = StateProvider<Color>((ref) => Colors.blue);
+
 class ManageCategoriesPage extends ConsumerStatefulWidget {
   const ManageCategoriesPage({super.key});
 
   @override
-  ConsumerState<ManageCategoriesPage> createState() => _ManageCategoriesPageState();
+  ConsumerState<ManageCategoriesPage> createState() =>
+      _ManageCategoriesPageState();
 }
 
 class _ManageCategoriesPageState extends ConsumerState<ManageCategoriesPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
-  Color _selectedColor = Colors.blue;
   final List<Color> _colors = [
     Colors.blue,
     Colors.green,
@@ -49,21 +50,22 @@ class _ManageCategoriesPageState extends ConsumerState<ManageCategoriesPage> {
       ),
       body: categoriesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error: ${error.toString()}'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.refresh(categoryNotifierProvider),
-                child: const Text('Retry'),
+        error:
+            (error, stack) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error: ${error.toString()}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => ref.refresh(categoryNotifierProvider),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
         data: (categories) => _buildCategoriesList(context, categories),
       ),
       floatingActionButton: FloatingActionButton(
@@ -107,21 +109,23 @@ class _ManageCategoriesPageState extends ConsumerState<ManageCategoriesPage> {
               child: const Icon(Icons.category, color: Colors.white),
             ),
             title: Text(category.name),
-            subtitle: category.description != null
-                ? Text(category.description!)
-                : null,
+            subtitle:
+                category.description != null
+                    ? Text(category.description!)
+                    : null,
             trailing: PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'delete') {
                   _showDeleteDialog(context, category);
                 }
               },
-              itemBuilder: (BuildContext context) => [
-                const PopupMenuItem<String>(
-                  value: 'delete',
-                  child: Text('Delete'),
-                ),
-              ],
+              itemBuilder:
+                  (BuildContext context) => [
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Text('Delete'),
+                    ),
+                  ],
             ),
           ),
         );
@@ -132,82 +136,86 @@ class _ManageCategoriesPageState extends ConsumerState<ManageCategoriesPage> {
   void _showAddCategoryDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Category'),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Category Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a category name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (Optional)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 16),
-              const Text('Select Color:'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: _colors.map((color) {
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedColor = color;
-                      });
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: _selectedColor == color
-                            ? Border.all(color: Colors.black, width: 3)
-                            : null,
-                      ),
+      builder: (context) => Consumer(
+        builder: (context, ref, _) {
+          final selectedColor = ref.watch(selectedColorProvider);
+          
+          return AlertDialog(
+            title: const Text('Add Category'),
+            content: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Category Name',
+                      border: OutlineInputBorder(),
                     ),
-                  );
-                }).toList(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a category name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description (Optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Select Color:'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _colors.map((color) {
+                      return GestureDetector(
+                        onTap: () {
+                          ref.read(selectedColorProvider.notifier).state = color;
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: selectedColor == color
+                                ? Border.all(color: Colors.black, width: 3)
+                                : null,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _clearForm();
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    _addCategory();
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: const Text('Add'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _clearForm();
-            },
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                _addCategory();
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -215,33 +223,62 @@ class _ManageCategoriesPageState extends ConsumerState<ManageCategoriesPage> {
   void _showDeleteDialog(BuildContext context, Category category) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Category'),
-        content: Text('Are you sure you want to delete "${category.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Category'),
+            content: Text(
+              'Are you sure you want to delete "${category.name}"?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await ref
+                        .read(categoryNotifierProvider.notifier)
+                        .deleteCategory(category.id);
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Category "${category.name}" deleted'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to delete category: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              // TODO: Implement delete category
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
   }
 
   void _addCategory() {
+    final selectedColor = ref.read(selectedColorProvider);
     final category = Category(
       id: const Uuid().v4(),
       name: _nameController.text,
-      color: _selectedColor.value.toString(),
-      description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
+      color: selectedColor.value.toString(),
+      description:
+          _descriptionController.text.isEmpty
+              ? null
+              : _descriptionController.text,
       createdAt: DateTime.now(),
     );
 
@@ -252,6 +289,6 @@ class _ManageCategoriesPageState extends ConsumerState<ManageCategoriesPage> {
   void _clearForm() {
     _nameController.clear();
     _descriptionController.clear();
-    _selectedColor = Colors.blue;
+    ref.read(selectedColorProvider.notifier).state = Colors.blue;
   }
 }

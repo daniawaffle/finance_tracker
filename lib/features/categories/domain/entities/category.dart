@@ -1,4 +1,6 @@
-class Category {
+import 'package:equatable/equatable.dart';
+
+class Category extends Equatable {
   final String id;
   final String name;
   final String color;
@@ -14,22 +16,11 @@ class Category {
   });
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Category &&
-        other.id == id &&
-        other.name == name &&
-        other.color == color &&
-        other.description == description &&
-        other.createdAt == createdAt;
-  }
-
-  @override
-  int get hashCode {
-    return id.hashCode ^
-        name.hashCode ^
-        color.hashCode ^
-        description.hashCode ^
-        createdAt.hashCode;
-  }
+  List<Object?> get props => [
+        id,
+        name,
+        color,
+        description,
+        createdAt,
+      ];
 }
