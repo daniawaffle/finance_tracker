@@ -14,6 +14,8 @@ import '../../features/transactions/data/repositories/transaction_repository_imp
 import '../../features/transactions/domain/repositories/transaction_repository.dart';
 import '../../features/transactions/domain/usecases/add_transaction.dart';
 import '../../features/transactions/domain/usecases/get_all_transactions.dart';
+import '../../features/transactions/domain/usecases/update_transaction.dart';
+import '../../features/transactions/domain/usecases/delete_transaction.dart';
 
 final sl = GetIt.instance;
 
@@ -49,4 +51,6 @@ Future<void> init() async {
   sl.registerLazySingleton(() => DeleteCategory(sl()));
   sl.registerLazySingleton(() => GetAllTransactions(sl()));
   sl.registerLazySingleton(() => AddTransaction(sl()));
+  sl.registerLazySingleton(() => UpdateTransaction(sl()));
+  sl.registerLazySingleton(() => DeleteTransaction(sl()));
 }

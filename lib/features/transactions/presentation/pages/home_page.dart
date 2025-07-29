@@ -6,6 +6,7 @@ import '../providers/transaction_providers.dart';
 import '../../../categories/presentation/providers/category_providers.dart';
 import '../../../categories/presentation/pages/manage_categories_page.dart';
 import 'add_transaction_page.dart';
+import 'edit_transaction_page.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -50,7 +51,7 @@ class HomePage extends ConsumerWidget {
             ],
           ),
         ),
-        data: (transactions) => _buildTransactionsList(context, transactions),
+        data: (transactions) => _buildTransactionsList(context, ref, transactions),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -69,7 +70,7 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildTransactionsList(BuildContext context, List<Transaction> transactions) {
+  Widget _buildTransactionsList(BuildContext context, WidgetRef ref, List<Transaction> transactions) {
     if (transactions.isEmpty) {
       return const Center(
         child: Column(
@@ -109,7 +110,7 @@ class HomePage extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.7)],
+              colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withValues(alpha: 0.7)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -161,44 +162,123 @@ class HomePage extends ConsumerWidget {
         Expanded(
           child: ListView.builder(
             itemCount: transactions.length,
-            itemBuilder: (context, index) {
-              final transaction = transactions[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Color(int.parse(transaction.category.color)),
-                    child: Icon(
-                      transaction.type == TransactionType.income
-                          ? Icons.arrow_downward
-                          : Icons.arrow_upward,
-                      color: Colors.white,
-                    ),
-                  ),
-                  title: Text(transaction.title),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(transaction.category.name),
-                      Text(DateFormat('MMM dd, yyyy').format(transaction.date)),
-                    ],
-                  ),
-                  trailing: Text(
-                    '${transaction.type == TransactionType.income ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: transaction.type == TransactionType.income
-                          ? Colors.green
-                          : Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              );
-            },
+            itemBuilder: (context, index) => _buildTransactionItem(context, ref, transactions[index]),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTransactionItem(BuildContext context, WidgetRef ref, Transaction transaction) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Color(int.parse(transaction.category.color)),
+          child: Icon(
+            transaction.type == TransactionType.income
+                ? Icons.arrow_downward
+                : Icons.arrow_upward,
+            color: Colors.white,
+          ),
+        ),
+        title: Text(transaction.title),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(transaction.category.name),
+            Text(DateFormat('MMM dd, yyyy').format(transaction.date)),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${transaction.type == TransactionType.income ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}',
+              style: TextStyle(
+                color: transaction.type == TransactionType.income
+                    ? Colors.green
+                    : Colors.red,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) => _handleMenuAction(context, ref, value, transaction),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, size: 18),
+                      SizedBox(width: 8),
+                      Text('Edit'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, size: 18, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleMenuAction(BuildContext context, WidgetRef ref, String action, Transaction transaction) {
+    if (action == 'edit') {
+      _editTransaction(context, ref, transaction);
+    } else if (action == 'delete') {
+      _deleteTransaction(context, ref, transaction);
+    }
+  }
+
+  void _editTransaction(BuildContext context, WidgetRef ref, Transaction transaction) async {
+    final categoriesAsync = ref.read(categoryNotifierProvider);
+    await categoriesAsync.when(
+      loading: () => _showLoadingDialog(context),
+      error: (error, stack) => _showErrorDialog(context, error.toString()),
+      data: (categories) => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => EditTransactionPage(
+            transaction: transaction,
+            categories: categories,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _deleteTransaction(BuildContext context, WidgetRef ref, Transaction transaction) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Transaction'),
+        content: Text('Are you sure you want to delete "${transaction.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(transactionNotifierProvider.notifier).deleteTransaction(transaction.id);
+              Navigator.of(context).pop();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 
