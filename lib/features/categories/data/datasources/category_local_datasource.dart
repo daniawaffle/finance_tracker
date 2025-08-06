@@ -1,6 +1,7 @@
-import 'package:hive/hive.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/database/database_helper.dart';
 import '../models/category_model.dart';
 
 abstract class CategoryLocalDataSource {
@@ -12,14 +13,22 @@ abstract class CategoryLocalDataSource {
 }
 
 class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
-  final Box<CategoryModel> categoryBox;
+  final DatabaseHelper databaseHelper;
 
-  CategoryLocalDataSourceImpl({required this.categoryBox});
+  CategoryLocalDataSourceImpl({required this.databaseHelper});
 
   @override
   Future<List<CategoryModel>> getAllCategories() async {
     try {
-      return categoryBox.values.toList();
+      final db = await databaseHelper.database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        AppConstants.categoriesTable,
+        orderBy: '${AppConstants.categoryCreatedAtColumn} DESC',
+      );
+
+      return List.generate(maps.length, (i) {
+        return CategoryModel.fromMap(maps[i]);
+      });
     } catch (e) {
       throw DatabaseFailure('Failed to get categories: ${e.toString()}');
     }
@@ -28,11 +37,18 @@ class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
   @override
   Future<CategoryModel> getCategoryById(String id) async {
     try {
-      final category = categoryBox.get(id);
-      if (category == null) {
+      final db = await databaseHelper.database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        AppConstants.categoriesTable,
+        where: '${AppConstants.categoryIdColumn} = ?',
+        whereArgs: [id],
+      );
+
+      if (maps.isEmpty) {
         throw DatabaseFailure('Category with id $id not found');
       }
-      return category;
+
+      return CategoryModel.fromMap(maps.first);
     } catch (e) {
       throw DatabaseFailure('Failed to get category: ${e.toString()}');
     }
@@ -41,7 +57,12 @@ class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
   @override
   Future<void> addCategory(CategoryModel category) async {
     try {
-      await categoryBox.put(category.id, category);
+      final db = await databaseHelper.database;
+      await db.insert(
+        AppConstants.categoriesTable,
+        category.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     } catch (e) {
       throw DatabaseFailure('Failed to add category: ${e.toString()}');
     }
@@ -50,7 +71,17 @@ class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
   @override
   Future<void> updateCategory(CategoryModel category) async {
     try {
-      await categoryBox.put(category.id, category);
+      final db = await databaseHelper.database;
+      final count = await db.update(
+        AppConstants.categoriesTable,
+        category.toMap(),
+        where: '${AppConstants.categoryIdColumn} = ?',
+        whereArgs: [category.id],
+      );
+
+      if (count == 0) {
+        throw DatabaseFailure('Category with id ${category.id} not found');
+      }
     } catch (e) {
       throw DatabaseFailure('Failed to update category: ${e.toString()}');
     }
@@ -59,7 +90,16 @@ class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
   @override
   Future<void> deleteCategory(String id) async {
     try {
-      await categoryBox.delete(id);
+      final db = await databaseHelper.database;
+      final count = await db.delete(
+        AppConstants.categoriesTable,
+        where: '${AppConstants.categoryIdColumn} = ?',
+        whereArgs: [id],
+      );
+
+      if (count == 0) {
+        throw DatabaseFailure('Category with id $id not found');
+      }
     } catch (e) {
       throw DatabaseFailure('Failed to delete category: ${e.toString()}');
     }
